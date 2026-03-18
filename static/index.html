@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tweetshot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="scene" aria-hidden="true">
+    <div class="scene-glow glow-a"></div>
+    <div class="scene-glow glow-b"></div>
+    <div class="scene-grid"></div>
+  </div>
+
+  <main class="page" id="top">
+    <header class="hero">
+      <p class="eyebrow">tweetshot</p>
+      <h1>Capture tweets cleanly, in batch.</h1>
+      <p class="hero-copy">Paste an X profile or tweet URL, apply filters, and export screenshots with metadata.</p>
+    </header>
+
+    <section class="panel panel-compact" aria-labelledby="capture-title">
+      <div class="panel-head">
+        <h2 id="capture-title">Batch Capture</h2>
+        <span class="panel-note">Output goes to <code>outputs/</code></span>
+      </div>
+
+      <form id="capture-form" novalidate>
+        <div class="url-row">
+          <label class="sr-only" for="tweet-url">X URL</label>
+          <input type="url" id="tweet-url" placeholder="https://x.com/username" required autocomplete="off">
+          <button type="submit" id="submit-btn" class="btn btn-primary">
+            <span class="btn-text">Capture Batch</span>
+            <span class="spinner" id="btn-spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <div id="form-status" class="status" role="status" aria-live="polite"></div>
+
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label for="batch-target-select">Target Mode</label>
+            <select id="batch-target-select">
+              <option value="count" selected>By max count</option>
+              <option value="date">By since date</option>
+              <option value="hours">By recent hours</option>
+            </select>
+          </div>
+
+          <div class="setting-item" id="count-setting">
+            <label for="count-input">Batch Count</label>
+            <input type="number" id="count-input" value="5" min="1" max="50">
+          </div>
+
+          <div class="setting-item is-hidden" id="date-setting">
+            <label for="date-input">Since Date</label>
+            <input type="date" id="date-input">
+          </div>
+
+          <div class="setting-item is-hidden" id="hours-setting">
+            <label for="hours-input">Within Last N Hours</label>
+            <input type="number" id="hours-input" value="24" min="1" max="720">
+          </div>
+
+          <div class="setting-item">
+            <label for="theme-select">Theme</label>
+            <select id="theme-select">
+              <option value="dark" selected>Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label for="scale-select">Resolution</label>
+            <select id="scale-select">
+              <option value="1.0">Standard (1x)</option>
+              <option value="2.0" selected>High (2x)</option>
+              <option value="3.0">Ultra (3x)</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label for="zip-input">Output Packaging</label>
+            <select id="zip-input">
+              <option value="false" selected>Individual images</option>
+              <option value="true">Zip archive</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label for="json-input">Export Metadata</label>
+            <select id="json-input">
+              <option value="false" selected>No</option>
+              <option value="true">Yes</option>
+            </select>
+          </div>
+        </div>
+
+        <details class="advanced-filters">
+          <summary>
+            <span>Advanced Deep Filters</span>
+            <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </summary>
+
+          <div class="filter-area">
+            <div class="filter-group">
+              <label>Post Type</label>
+              <div class="chip-group" id="chip-types">
+                <label class="chip"><input type="checkbox" value="original" checked><span>Original</span></label>
+                <label class="chip"><input type="checkbox" value="retweet" checked><span>Retweet</span></label>
+                <label class="chip"><input type="checkbox" value="reply" checked><span>Reply</span></label>
+                <label class="chip"><input type="checkbox" value="quote" checked><span>Quote</span></label>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label>Media Content</label>
+              <div class="chip-group" id="chip-media">
+                <label class="chip"><input type="checkbox" value="text" checked><span>Text</span></label>
+                <label class="chip"><input type="checkbox" value="image" checked><span>Image</span></label>
+                <label class="chip"><input type="checkbox" value="video" checked><span>Video</span></label>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label>External Links</label>
+              <div class="chip-group" id="chip-links">
+                <label class="chip"><input type="checkbox" value="no_links" checked><span>No links</span></label>
+                <label class="chip"><input type="checkbox" value="has_links" checked><span>Has links</span></label>
+              </div>
+            </div>
+          </div>
+        </details>
+      </form>
+
+      <p class="auth-hint">Ensure <code>auth.json</code> includes a valid cookie string before capture.</p>
+    </section>
+
+    <section id="result-container" class="panel result is-hidden" aria-live="polite">
+      <div class="panel-head">
+        <h2 id="result-title">Result</h2>
+        <div id="result-actions" class="result-actions"></div>
+      </div>
+      <div id="result-summary" class="result-summary"></div>
+      <div id="image-gallery" class="gallery"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

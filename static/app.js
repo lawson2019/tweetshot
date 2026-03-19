@@ -17,6 +17,12 @@
   const scaleSelect = document.getElementById('scale-select');
   const zipInput = document.getElementById('zip-input');
   const jsonInput = document.getElementById('json-input');
+  const headedToggle = document.getElementById('headed-toggle');
+  const cookieInput = document.getElementById('cookie-input');
+  const authStatusBar = document.getElementById('auth-status-bar');
+  const authStatusText = document.getElementById('auth-status-text');
+  const authDot = document.getElementById('auth-dot');
+  const authPanel = document.getElementById('auth-panel');
 
   const resultContainer = document.getElementById('result-container');
   const resultTitle = document.getElementById('result-title');
@@ -27,9 +33,7 @@
 
   function setStatus(message, type) {
     formStatus.className = 'status';
-    if (type) {
-      formStatus.classList.add(type);
-    }
+    if (type) formStatus.classList.add(type);
     formStatus.textContent = message || '';
   }
 
@@ -43,6 +47,42 @@
     countSetting.classList.toggle('is-hidden', mode !== 'count');
     dateSetting.classList.toggle('is-hidden', mode !== 'date');
     hoursSetting.classList.toggle('is-hidden', mode !== 'hours');
+  }
+
+  function toggleAuthPanel(forceExpand) {
+    const expanded = typeof forceExpand === 'boolean'
+      ? forceExpand
+      : authStatusBar.getAttribute('aria-expanded') !== 'true';
+    authStatusBar.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    authPanel.classList.toggle('is-hidden', !expanded);
+  }
+
+  function isAuthPanelOpen() {
+    return authStatusBar.getAttribute('aria-expanded') === 'true';
+  }
+
+  async function refreshAuthStatus() {
+    try {
+      const resp = await fetch('/api/auth/status', { method: 'GET' });
+      const data = await resp.json();
+      if (data && data.logged_in) {
+        authStatusText.textContent = 'Logged in';
+        authDot.classList.remove('bad');
+        authDot.classList.add('ok');
+      } else if (data && data.has_auth_file) {
+        authStatusText.textContent = 'Auth file invalid';
+        authDot.classList.remove('ok');
+        authDot.classList.add('bad');
+      } else {
+        authStatusText.textContent = 'Not logged in';
+        authDot.classList.remove('ok');
+        authDot.classList.add('bad');
+      }
+    } catch (_) {
+      authStatusText.textContent = 'Login status unavailable';
+      authDot.classList.remove('ok');
+      authDot.classList.add('bad');
+    }
   }
 
   function getSelectedValues(containerId) {
@@ -60,8 +100,7 @@
   function ensureValidFilters() {
     const groups = ['chip-types', 'chip-media', 'chip-links'];
     for (const groupId of groups) {
-      const selected = getSelectedValues(groupId);
-      if (selected.length === 0) {
+      if (getSelectedValues(groupId).length === 0) {
         throw new Error('Each advanced filter group must keep at least one active option.');
       }
     }
@@ -69,9 +108,7 @@
 
   function collectPayload() {
     const url = urlInput.value.trim();
-    if (!url) {
-      throw new Error('Please provide a valid X URL.');
-    }
+    if (!url) throw new Error('Please provide a valid X URL.');
 
     ensureValidFilters();
 
@@ -84,6 +121,8 @@
       bg_color: 'transparent',
       zip_output: zipInput.value === 'true',
       export_json: jsonInput.value === 'true',
+      headed: !!headedToggle.checked,
+      cookie_string: (cookieInput.value || '').trim() || null,
       since_date: null,
       since_hours: null,
       count: Number.parseInt(countInput.value, 10),
@@ -94,23 +133,17 @@
 
     const mode = batchTargetSelect.value;
     if (mode === 'date') {
-      if (!dateInput.value) {
-        throw new Error('Please select a since date.');
-      }
+      if (!dateInput.value) throw new Error('Please select a since date.');
       payload.count = 500;
       payload.since_date = dateInput.value;
     } else if (mode === 'hours') {
       const hours = Number.parseInt(hoursInput.value, 10);
-      if (!Number.isFinite(hours) || hours <= 0) {
-        throw new Error('Hours must be a positive integer.');
-      }
+      if (!Number.isFinite(hours) || hours <= 0) throw new Error('Hours must be a positive integer.');
       payload.count = 500;
       payload.since_hours = hours;
     } else {
       const count = Number.parseInt(countInput.value, 10);
-      if (!Number.isFinite(count) || count <= 0) {
-        throw new Error('Count must be a positive integer.');
-      }
+      if (!Number.isFinite(count) || count <= 0) throw new Error('Count must be a positive integer.');
       payload.count = count;
     }
 
@@ -126,17 +159,6 @@
     return btn;
   }
 
-  function autoDownloadMetadata(metadata, jobId) {
-    const blob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
-    const blobUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = `${jobId || 'batch'}_metadata.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(blobUrl);
-  }
 
   function renderZipResult(data) {
     resultTitle.textContent = 'Batch archive ready';
@@ -148,39 +170,60 @@
 
     resultActions.appendChild(downloadBtn);
     resultContainer.classList.remove('is-hidden');
+  }
 
-    window.location.href = data.url;
+  function appendCardToGallery(imgObj, index) {
+    const srcUrl = typeof imgObj === 'string' ? imgObj : imgObj.url;
+    const filename = typeof imgObj === 'string' ? 'image' : (imgObj.filename || 'image');
+    const timestamp = Date.now();
+
+    const card = document.createElement('article');
+    card.className = 'gallery-item';
+    card.style.animationDelay = `${Math.min(index * 20, 260)}ms`;
+
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.alt = filename;
+    img.src = `${srcUrl}${srcUrl.includes('?') ? '&' : '?'}t=${timestamp}`;
+
+    const caption = document.createElement('div');
+    caption.className = 'gallery-caption';
+    caption.textContent = filename;
+
+    card.appendChild(img);
+    card.appendChild(caption);
+    gallery.appendChild(card);
   }
 
   function renderImageResult(data) {
     const images = Array.isArray(data.images) ? data.images : [];
-    const timestamp = Date.now();
 
     resultTitle.textContent = 'Batch gallery';
     resultSummary.textContent = `Generated ${images.length} image(s).`;
-
-    for (const imgObj of images) {
-      const srcUrl = typeof imgObj === 'string' ? imgObj : imgObj.url;
-      const filename = typeof imgObj === 'string' ? 'image' : (imgObj.filename || 'image');
-
-      const card = document.createElement('article');
-      card.className = 'gallery-item';
-
-      const img = document.createElement('img');
-      img.loading = 'lazy';
-      img.alt = filename;
-      img.src = `${srcUrl}${srcUrl.includes('?') ? '&' : '?'}t=${timestamp}`;
-
-      const caption = document.createElement('div');
-      caption.className = 'gallery-caption';
-      caption.textContent = filename;
-
-      card.appendChild(img);
-      card.appendChild(caption);
-      gallery.appendChild(card);
-    }
-
     resultContainer.classList.remove('is-hidden');
+
+    const total = images.length;
+    if (total === 0) return Promise.resolve();
+
+    let shown = 0;
+    const chunkSize = 1;
+
+    const tick = () => new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+
+    return (async () => {
+      for (let i = 0; i < total; i += 1) {
+        appendCardToGallery(images[i], i);
+        shown += 1;
+        resultSummary.textContent = `Streaming ${shown}/${total} image(s)...`;
+
+        if (shown % chunkSize === 0) {
+          await tick();
+        }
+      }
+      resultSummary.textContent = `Generated ${total} image(s).`;
+    })();
   }
 
   async function submitCapture(event) {
@@ -199,31 +242,65 @@
     setStatus('Capturing tweets in batch mode...', null);
 
     try {
-      const response = await fetch('/api/screenshot/batch', {
+      // Use streaming endpoint
+      const response = await fetch('/api/screenshot/batch-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const data = await response.json();
         const detail = data && data.detail ? data.detail : 'Batch capture failed.';
         throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
       }
 
-      if (data.is_zip) {
-        renderZipResult(data);
-      } else {
-        renderImageResult(data);
+      // Prepare UI for stream
+      resultTitle.textContent = 'Batch gallery';
+      resultSummary.textContent = 'Starting capture...';
+      resultContainer.classList.remove('is-hidden');
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let imageCount = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // Keep incomplete chunk
+        
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line);
+            if (msg.type === 'image') {
+              imageCount++;
+              resultSummary.textContent = `Captured ${imageCount} image(s)...`;
+              appendCardToGallery(msg, imageCount - 1);
+            } else if (msg.type === 'complete') {
+              resultSummary.textContent = `Completed. Generated ${msg.count} image(s).`;
+              if (msg.zip_url) {
+                renderZipResult({ filename: `${msg.job_id}.zip`, url: msg.zip_url });
+                setTimeout(() => {
+                  window.location.href = msg.zip_url;
+                }, 120);
+              }
+            } else if (msg.type === 'error') {
+              throw new Error(msg.detail);
+            }
+          } catch (e) {
+            console.error('Stream parse error:', e);
+          }
+        }
       }
 
-      if (payload.export_json && Array.isArray(data.metadata) && data.metadata.length > 0) {
-        autoDownloadMetadata(data.metadata, data.id);
-      }
-
+      await refreshAuthStatus();
       setStatus('Capture completed successfully.', 'ok');
-      resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      
     } catch (error) {
       setStatus(error.message || 'Unexpected error.', 'err');
     } finally {
@@ -232,8 +309,21 @@
   }
 
   batchTargetSelect.addEventListener('change', () => updateBatchMode(batchTargetSelect.value));
+  authStatusBar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleAuthPanel();
+  });
+  authPanel.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => {
+    if (isAuthPanelOpen()) toggleAuthPanel(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isAuthPanelOpen()) toggleAuthPanel(false);
+  });
   form.addEventListener('submit', submitCapture);
 
   updateBatchMode(batchTargetSelect.value);
+  toggleAuthPanel(false);
+  refreshAuthStatus();
   clearResult();
 })();

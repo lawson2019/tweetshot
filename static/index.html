@@ -18,7 +18,33 @@
 
   <main class="page" id="top">
     <header class="hero">
-      <p class="eyebrow">tweetshot</p>
+      <div class="auth-hud">
+        <button type="button" id="auth-status-bar" class="auth-status-bar" aria-expanded="false" aria-controls="auth-panel">
+          <span class="auth-dot" id="auth-dot" aria-hidden="true"></span>
+          <span id="auth-status-text">Checking...</span>
+          <span class="auth-caret" aria-hidden="true">▾</span>
+        </button>
+
+        <div id="auth-panel" class="auth-panel is-hidden">
+          <div class="auth-panel-grid">
+            <div class="browser-mode-row">
+              <span class="browser-mode-label">Browser Mode</span>
+              <label class="mini-toggle" for="headed-toggle">
+                <input type="checkbox" id="headed-toggle">
+                <span class="mini-switch" aria-hidden="true"></span>
+                <span class="mini-toggle-text">Headed</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="auth-cookie-group">
+            <label for="cookie-input" class="browser-mode-label">Session Cookie</label>
+            <textarea id="cookie-input" rows="3" placeholder="Paste full Cookie header from logged-in x.com request"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <p class="eyebrow">TWEETSHOT</p>
       <h1>Capture tweets cleanly, in batch.</h1>
       <p class="hero-copy">Paste an X profile or tweet URL, apply filters, and export screenshots with metadata.</p>
     </header>
@@ -26,7 +52,7 @@
     <section class="panel panel-compact" aria-labelledby="capture-title">
       <div class="panel-head">
         <h2 id="capture-title">Batch Capture</h2>
-        <span class="panel-note">Output goes to <code>outputs/</code></span>
+        <span class="panel-note">Output goes to <code>outputs/</code> (including metadata if enabled)</span>
       </div>
 
       <form id="capture-form" novalidate>
@@ -98,6 +124,7 @@
               <option value="true">Yes</option>
             </select>
           </div>
+
         </div>
 
         <details class="advanced-filters">
@@ -135,6 +162,7 @@
                 <label class="chip"><input type="checkbox" value="has_links" checked><span>Has links</span></label>
               </div>
             </div>
+
           </div>
         </details>
       </form>
@@ -152,6 +180,6 @@
     </section>
   </main>
 
-  <script src="/static/app.js" defer></script>
+  <script src="/static/app.js?v=4" defer></script>
 </body>
 </html>

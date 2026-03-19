@@ -46,17 +46,10 @@ Tweetshot is a robust tool for capturing X (Twitter) posts in batch as clean, hi
 
 ### Prerequisites
 - Python 3.10+
-- [Conda](https://docs.conda.io/en/latest/) (Recommended)
 
 ### Installation
 
-> [!IMPORTANT]
-> Always ensure your environment is active before running scripts.
-
 ```bash
-# Activate your environment first
-conda activate your_env_name
-
 # Install dependencies
 pip install -r requirements.txt
 playwright install chromium
@@ -81,22 +74,19 @@ X capture quality and reliability depend on valid login cookies (`auth_token`, `
 
 ## CLI Usage (`screenshot.py`)
 
-### Basic Batch
-```bash
-python screenshot.py batch "https://x.com/username" --count 10
-```
 
-### Advanced Filtering
 ```bash
+# Basic Batch
+python screenshot.py batch "https://x.com/username" --count 10
+
+# Advanced Filtering
 python screenshot.py batch "https://x.com/username" \
   --since-hours 24 \
   --types original,reply \
   --media image \
   --export-json \
   --zip-output
-```
 
-### Headed Mode (for debugging)
-```bash
+# Headed Mode (for debugging)
 python screenshot.py batch "https://x.com/username" --count 5 --headed
 ```

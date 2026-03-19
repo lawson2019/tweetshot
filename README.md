@@ -9,7 +9,7 @@
 
 </div>
 
-Tweetshot is a robust tool for capturing X (Twitter) posts in batch as clean, high-quality screenshots. It supports advanced filtering, metadata export, and automatic packaging.
+Tweetshot is a robust tool for capturing X (Twitter) posts in batch as clean, high-quality screenshots. It supports advanced filtering, metadata export, and automatic packaging. The CLI is designed for AI agents and workflow automation.
 
 ![Main Interface](1.png)
 

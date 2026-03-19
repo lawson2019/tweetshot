@@ -12,7 +12,6 @@
 Tweetshot is a robust tool for capturing X (Twitter) posts in batch as clean, high-quality screenshots. It supports advanced filtering, metadata export, and automatic packaging.
 
 ![Main Interface](1.png)
-![Timeline Preview](2.png)
 
 ## Key Features
 
